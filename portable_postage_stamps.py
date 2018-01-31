@@ -44,6 +44,7 @@ print "Current size:", fig_size
 
 def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
                              log_contour_scale):
+    logthresh = -1*logthresh
     nlevs = 6
     for i in catalog.columns:
         if i.startswith('xmin'):
