@@ -282,6 +282,10 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
         del wcs2
     hdu.close()
     del image_data
+    os.system('rm %s.pdf' % fitsfile.split('.fits')[0])
+    os.system('pdfjoin -o %s.pdf *pdf' % fitsfile.split('.fits')[0])
+    os.system('mkdir postage_stamps')
+    os.system('mv *.pdf postage_stamps/')
 
 try:
     fitsfile = str(sys.argv[sys.argv.index('portable_postage_stamps.py')+1])
