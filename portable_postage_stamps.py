@@ -71,6 +71,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
     bpa = hdu[0].header['BPA']
     if image_data.ndim > 2:
         image_data = image_data[0, 0, :, :]
+    print 'Making postage stamps for the %d sources in the catalogue' % len(RA_min)
     for i in range(len(RA_min)):
         wcs = WCS(hdu['PRIMARY'].header)
         if units == 'uJy':
@@ -127,7 +128,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
                                     neg, '%02d' % int(coord.dec.dms.d),
                                     '%02d' % int(coord.dec.dms.m),
                                     '%s' % dec_s)
-        print 'Plotting %s' % name
+        print '%d) Plotting %s' % (i+1,name)
         ax = plt.subplot(projection=wcs2)
         ### Set coordinate formats
         lon = ax.coords['ra']
@@ -285,7 +286,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
     del image_data
     os.system('mkdir postage_stamps')
     os.system('rm postage_stamps/%s.pdf' % fitsfile.split('.fits')[0])
-    os.system('pdfjoin -o %s.pdf *pdf' % fitsfile.split('.fits')[0])
+    os.system('pdfjoin --no-landscape --rotateoversize False -o %s.pdf *pdf' % fitsfile.split('.fits')[0])
     os.system('mv *.pdf postage_stamps/')
 
 try:
