@@ -127,6 +127,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
                                     neg, '%02d' % int(coord.dec.dms.d),
                                     '%02d' % int(coord.dec.dms.m),
                                     '%s' % dec_s)
+        print 'Plotting %s' % name
         ax = plt.subplot(projection=wcs2)
         ### Set coordinate formats
         lon = ax.coords['ra']
@@ -144,7 +145,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
         divider = make_axes_locatable(ax)
         cax = divider.append_axes(
             "top", size="5%", pad=0.00, axes_class=matplotlib.axes.Axes)
-        if np.max(image_data2) > 50:
+        if np.max(image_data2) > 60:
             im = ax.imshow(
                 image_data2,
                 origin='lower',
@@ -152,7 +153,6 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
                 interpolation="bicubic",
                 norm=matplotlib.colors.SymLogNorm(10**-logthresh))
             tick = [np.min(image_data2)]
-            print np.log(np.std(image_data2)), np.log(np.max(image_data2))
             if log_contour_scale == 'e':
                 tick = np.append(tick,
                                  np.around(
@@ -213,7 +213,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
         ### Set tick position
         cb.ax.xaxis.set_ticks_position('top')
         cb
-        if np.max(image_data2) > 50:
+        if np.max(image_data2) > 60:
             levs = [-1 * np.std(image_data2), np.std(image_data2)]
             if log_contour_scale == 'e':
                 levs = np.append(levs,
@@ -285,7 +285,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
     del image_data
     os.system('mkdir postage_stamps')
     os.system('rm postage_stamps/%s.pdf' % fitsfile.split('.fits')[0])
-    os.system('pdfjoin -o %s.pdf *pdf' % fitsfile.split('.fits')[0])    
+    os.system('pdfjoin -o %s.pdf *pdf' % fitsfile.split('.fits')[0])
     os.system('mv *.pdf postage_stamps/')
 
 try:
