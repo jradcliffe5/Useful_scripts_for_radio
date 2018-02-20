@@ -43,9 +43,10 @@ plt.ioff()
 print "Current size:", fig_size
 
 def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
-                             log_contour_scale):
+                             log_contour_scale,nlevs):
     logthresh = -1*logthresh
-    nlevs = 6
+    nlevs = nlevs
+    do_rms_contours = 'False'
     for i in catalog.columns:
         if i.startswith('xmin'):
             RA_min = i
@@ -81,6 +82,9 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
                 flux_scaler = 1E3
             elif units == 'Jy':
                 flux_scaler = 1
+            else:
+                print 'oopsie'
+                exit()
             ### Make square plots
             if ((Dec_max[i] - Dec_min[i]) > (RA_max[i] - RA_min[i])):
                 RA_min2 = ((int(RA_min[i]) + int(RA_max[i])) / 2.) - (
@@ -203,7 +207,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
                                      np.linspace(
                                          np.std(image_data2), np.max(image_data2),
                                          nlevs),
-                                     decimals=0)[1:].astype(int))
+                                     decimals=1)[1:].astype(int))
                 tick = np.append(tick, np.max(image_data2))
                 tick = tick.astype(int)
                 cb = plt.colorbar(
@@ -215,7 +219,10 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
             ### Set tick position
             cb.ax.xaxis.set_ticks_position('top')
             if np.max(image_data2) > 60:
-                levs = [-1 * np.std(image_data2), np.std(image_data2)]
+                if do_rms_contours == 'False':
+                    levs = []
+                else:
+                    levs = [-1 * np.std(image_data2), np.std(image_data2)]
                 if log_contour_scale == 'e':
                     levs = np.append(levs,
                                      np.around(
@@ -256,7 +263,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
                                      np.linspace(
                                          np.std(image_data2), np.max(image_data2),
                                          nlevs),
-                                     decimals=0)[1:-1])
+                                     decimals=1)[1:-1])
             cont = ax.contour(image_data2, levels=levs, cmap='gray_r', alpha=0.5)
             cb.add_lines(cont)
             cb.ax.set_xticklabels(tick)
@@ -288,7 +295,9 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
     del image_data
     os.system('mkdir postage_stamps')
     os.system('rm postage_stamps/%s.pdf' % fitsfile.split('.fits')[0])
+    os.system('ulimit -S -n 16192')
     os.system('pdfjoin --no-landscape --rotateoversize False -o %s.pdf *pdf' % fitsfile.split('.fits')[0])
+    os.system('gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/default -dNOPAUSE -dQUIET -dBATCH -dDetectDuplicateImages -dCompressFonts=true -r50 -sOutputFile=%s_small.pdf %s.pdf' % ( fitsfile.split('.fits')[0],fitsfile.split('.fits')[0]))
     os.system('mv *.pdf postage_stamps/')
 
 try:
@@ -298,8 +307,9 @@ try:
     units = str(sys.argv[sys.argv.index('portable_postage_stamps.py')+4])
     logthresh = float(sys.argv[sys.argv.index('portable_postage_stamps.py')+5])
     log_contour_scale = str(sys.argv[sys.argv.index('portable_postage_stamps.py')+6])
+    nlevs = int(sys.argv[sys.argv.index('portable_postage_stamps.py')+7])
     catalog = pd.read_csv(catalog)
     make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
-                                 log_contour_scale)
+                                 log_contour_scale,nlevs)
 except IndexError:
-    print 'Usage python portable_postage_stamps.py <fitsfile> <catalog> <subimsize> <units> <logthresh> <log_contour_scale>'
+    print 'Usage python portable_postage_stamps.py <fitsfile> <catalog> <subimsize> <units> <logthresh> <log_contour_scale> <nlevs>'
