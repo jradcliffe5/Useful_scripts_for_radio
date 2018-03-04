@@ -28,4 +28,4 @@ for file in os.listdir(path):
 
 c = SkyCoord(RA,DEC,unit='deg',frame='icrs')
 print 'Saving array in current directory as: %s.npy' % output_numpy
-pd.to_csv(pd.DataFrame({'filename':f,'RA':c.ra.degree,'DEC':c.dec.degree,'rms':rms}).to_csv('%s.csv' % output_numpy)
+pd.DataFrame({'filename':f,'RA':c.ra.degree,'DEC':c.dec.degree,'rms':rms}).to_csv('%s.csv' % output_numpy)
