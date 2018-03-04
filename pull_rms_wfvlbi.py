@@ -1,6 +1,8 @@
 import os,sys
 from astropy.io import fits
 import numpy as np
+from astropy.coordinates import SkyCoord, Angle
+import pandas as pd
 try:
     path = str(sys.argv[sys.argv.index('pull_rms_wfvlbi.py')+1])
     output_numpy = str(sys.argv[sys.argv.index('pull_rms_wfvlbi.py')+2])
@@ -23,5 +25,7 @@ for file in os.listdir(path):
         image_data = hdu[0].data
         image_data = image_data[0,0,:,:]
         rms.append(np.sqrt(np.mean(np.square(image_data[150:1200,150:1200])))*1E6)
+
+c = SkyCoord(RA,DEC,unit='deg',frame='icrs')
 print 'Saving array in current directory as: %s.npy' % output_numpy
-np.save('%s.npy' % output_numpy,[f,c.ra.degree,c.dec.degree,rms])
+pd.to_csv(pd.DataFrame({'filename':f,'RA':c.ra.degree,'DEC':c.dec.degree,'rms':rms}).to_csv('%s.csv' % output_numpy)
