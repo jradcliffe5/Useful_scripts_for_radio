@@ -14,8 +14,11 @@ try:
     AIPS.userno = aipsuser
 except ImportError:
     print 'No AIPS/Parseltongue available'
-
-from astropy.io import fits
+try:
+    from astropy.io import fits
+except ImportError:
+    type_fits = 'pyfits'
+    import pyfits as fits
 
 
 fitld = AIPSTask('FITLD')
@@ -40,6 +43,9 @@ hdu = fits.open(modelimage)
 imagedata = hdu['PRIMARY'].data
 imagedata[imagedata<cutoff] = 0
 header = hdu['PRIMARY'].header
-hdu.writeto('%s_adjusted.fits' % modelimage.split('.fits')[0], overwrite=True)
+if type_fits=='pyfits':
+    hdu.writeto('%s_adjusted.fits' % modelimage.split('.fits')[0], clobber = True)
+else:
+    hdu.writeto('%s_adjusted.fits' % modelimage.split('.fits')[0], overwrite=True)
 hdu.close()
 print('DONE.\nOutput image: %s_adjusted.fits' % modelimage.split('.fits')[0])
