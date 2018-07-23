@@ -78,7 +78,7 @@ def read_uvw(msfile, field):
 def make_uvcov(msfiles):
 	#logger.info('Plotting uv-coverage for all sources'.format())
 	custom_lines = []
-	colors = ['k','r']
+	colors = ['k','r','b','g']
 	telescope_names = []
 	for i, msfile in enumerate(msfiles):
 		freqs = get_freqs(msfile, allfreqs=True)
