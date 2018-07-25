@@ -10,6 +10,7 @@ import sys
 from matplotlib.lines import Line2D
 from matplotlib import rc
 from matplotlib import rcParams
+import cPickle as pickle
 
 rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 ## for Palatino and other serif fonts use:
@@ -53,13 +54,13 @@ def single_uvcov(u, v, freqs, ax,color,telescope_name):
 	for i, freqi in enumerate(freqs):
 		fc = freqi/c/1e6
 		if i == 0:
-			ax.plot(+u*fc, +v*fc, marker='.', ms=0.1, ls='',
+			ax.plot(+u*fc, +v*fc, marker='.', ms=0.01, ls='',
 					 color=color, mec=color, label=telescope_name,alpha=0.1)
-			ax.plot(-u*fc, -v*fc, marker='.', ms=0.1, ls='',
+			ax.plot(-u*fc, -v*fc, marker='.', ms=0.01, ls='',
 					 color=color, mec=color,alpha=0.1)
-		ax.plot(+u*fc, +v*fc, marker='.', ms=0.1, ls='',
+		ax.plot(+u*fc, +v*fc, marker='.', ms=0.01, ls='',
 				 color=color, mec=color,alpha=0.1)
-		ax.plot(-u*fc, -v*fc, marker='.', ms=0.1, ls='',
+		ax.plot(-u*fc, -v*fc, marker='.', ms=0.01, ls='',
 				 color=color, mec=color,alpha=0.1)
 	#lgnd = ax.legend(numpoints=1, markerscale=6, frameon=False, ncol=2, prop={'size':8})
 	return ax
@@ -75,7 +76,7 @@ def read_uvw(msfile, field):
 	v = uv['v']
 	return u, v
 
-def make_uvcov(msfiles,plotfile):
+def make_uvcov(msfiles,save_uv,plotfile):
 	#logger.info('Plotting uv-coverage for all sources'.format())
 	custom_lines = []
 	colors = ['k','r','b','g']
@@ -94,11 +95,20 @@ def make_uvcov(msfiles,plotfile):
 
 		#for f in msinfo['sources']['allsources'].split(','):
 		#ax1 = fig.add_axes([0.8, 0.1, 0.02, 0.8])
+		if save_uv == 'True':
+			u_save = np.array([])
+			v_save = np.array([])
 		for f in fields_ms:
 			u, v = read_uvw(msfile, f)
 			single_uvcov(u, v, freqs, ax,color=colors[i],telescope_name=telescope_name)
+			if save_uv == 'True':
+				u_save = np.hstack([u_save,u])
+				v_save = np.hstack([v_save,v])
 		else:
 			print 'Cannot plot uvcov for {0}. Source not in ms.'.format(f)
+		if save_uv == 'True':
+			uv_dict = {'u':u_save,'v':v_save,'freqs':freqs}
+			pickle.dump(uv_dict, open( "%s_uv.pkl"%telescope_name, "wb" ) )
 		custom_lines = custom_lines + [Line2D([0], [0], color=colors[i], lw=4)]
 		telescope_names = telescope_names + [telescope_name]
 
@@ -112,13 +122,14 @@ def make_uvcov(msfiles,plotfile):
 	ax.set_xlim(-main_lim, +main_lim)
 	ax.set_ylim(-main_lim, +main_lim)
 	#ax.legend()
-	fig.savefig(plotfile, dpi=900, bbox_inches='tight')
+	fig.savefig(plotfile, dpi=1500, bbox_inches='tight')
 
 
 try:
-        plotfile = sys.argv[sys.argv.index('make_uvcoverage_plots.py')+1]
-	msfiles = sys.argv[sys.argv.index('make_uvcoverage_plots.py')+2:]
+	plotfile = sys.argv[sys.argv.index('make_uvcoverage_plots.py')+1]
+	save_uv = sys.argv[sys.argv.index('make_uvcoverage_plots.py')+2]
+	msfiles = sys.argv[sys.argv.index('make_uvcoverage_plots.py')+3:]
 except:
-	print('Error: Usage casa -c make_uvcoverage_plots.py plotfile <ms1> <ms2> etc.')
+	print('Error: Usage casa -c make_uvcoverage_plots.py save_uv plotfile <ms1> <ms2> etc.')
 
-make_uvcov(msfiles,plotfile)
+make_uvcov(msfiles,save_uv,plotfile)
