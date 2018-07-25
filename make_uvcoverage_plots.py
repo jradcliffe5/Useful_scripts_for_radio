@@ -54,13 +54,13 @@ def single_uvcov(u, v, freqs, ax,color,telescope_name):
 		fc = freqi/c/1e6
 		if i == 0:
 			ax.plot(+u*fc, +v*fc, marker='.', ms=0.1, ls='',
-					 color=color, mec=color, label=telescope_name)
+					 color=color, mec=color, label=telescope_name,alpha=0.1)
 			ax.plot(-u*fc, -v*fc, marker='.', ms=0.1, ls='',
-					 color=color, mec=color)
+					 color=color, mec=color,alpha=0.1)
 		ax.plot(+u*fc, +v*fc, marker='.', ms=0.1, ls='',
-				 color=color, mec=color)
+				 color=color, mec=color,alpha=0.1)
 		ax.plot(-u*fc, -v*fc, marker='.', ms=0.1, ls='',
-				 color=color, mec=color)
+				 color=color, mec=color,alpha=0.1)
 	#lgnd = ax.legend(numpoints=1, markerscale=6, frameon=False, ncol=2, prop={'size':8})
 	return ax
 
@@ -75,11 +75,13 @@ def read_uvw(msfile, field):
 	v = uv['v']
 	return u, v
 
-def make_uvcov(msfiles):
+def make_uvcov(msfiles,plotfile):
 	#logger.info('Plotting uv-coverage for all sources'.format())
 	custom_lines = []
 	colors = ['k','r','b','g']
 	telescope_names = []
+	fig = plt.figure()
+	ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 	for i, msfile in enumerate(msfiles):
 		freqs = get_freqs(msfile, allfreqs=True)
 		tb.open(msfile+'/FIELD')
@@ -91,8 +93,6 @@ def make_uvcov(msfiles):
 		tb.close()
 
 		#for f in msinfo['sources']['allsources'].split(','):
-		fig = plt.figure()
-		ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
 		#ax1 = fig.add_axes([0.8, 0.1, 0.02, 0.8])
 		for f in fields_ms:
 			u, v = read_uvw(msfile, f)
@@ -112,12 +112,13 @@ def make_uvcov(msfiles):
 	ax.set_xlim(-main_lim, +main_lim)
 	ax.set_ylim(-main_lim, +main_lim)
 	#ax.legend()
-	fig.savefig(plotfile, dpi=200, bbox_inches='tight')
+	fig.savefig(plotfile, dpi=900, bbox_inches='tight')
 
 
 try:
+        plotfile = sys.argv[sys.argv.index('make_uvcoverage_plots.py')+1]
 	msfiles = sys.argv[sys.argv.index('make_uvcoverage_plots.py')+2:]
 except:
 	print('Error: Usage casa -c make_uvcoverage_plots.py plotfile <ms1> <ms2> etc.')
 
-make_uvcov(msfiles)
+make_uvcov(msfiles,plotfile)
