@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pickle
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 import datetime
@@ -11,21 +12,13 @@ from matplotlib.lines import Line2D
 from matplotlib import rc
 from matplotlib import rcParams
 import cPickle as pickle
+import matplotlib
+from matplotlib import rc
 
-rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+#rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 ## for Palatino and other serif fonts use:
-#rc('font',**{'family':'serif','serif':['Palatino']})
+rc('font',**{'family':'serif','serif':['Computer Modern']})
 rc('text', usetex=True)
-rcParams['mathtext.default'] = 'regular'
-fig_size = plt.rcParams["figure.figsize"]
-# Prints: [8.0, 6.0]
-
-# Set figure width to 9 and height to 9
-rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
-## for Palatino and other serif fonts use:
-#rc('font',**{'family':'serif','serif':['Palatino']})
-rc('text', usetex=False)
-rcParams['mathtext.default'] = 'regular'
 fig_size = plt.rcParams["figure.figsize"]
 # Prints: [8.0, 6.0]
 
@@ -35,7 +28,6 @@ fig_size[0] = 9
 size = 20
 plt.rcParams["figure.figsize"] = fig_size
 matplotlib.rcParams.update({'font.size': 22})
-plt.ioff()
 print "Current size:", fig_size
 
 
@@ -46,14 +38,10 @@ def single_uvcov(u, v, freqs, ax,color,telescope_name):
                 print('Frequency plotted: %.5e' % freqi)
 		fc = freqi/c/1e6
 		if i == 0:
-			ax.scatter(+u*fc, +v*fc, marker='.', s=0.01,
-					 color=color, label=telescope_name,alpha=0.005, rasterized=True)
-			ax.scatter(-u*fc, -v*fc, marker='.', s=0.01,
-					 color=color,alpha=0.005,rasterized=True)
-		ax.scatter(+u*fc, +v*fc, marker='.', s=0.01,
-				 color=color,alpha=0.005,rasterized=True)
-		ax.scatter(-u*fc, -v*fc, marker='.', s=0.01,
-				 color=color,alpha=0.005,rasterized=True)
+			ax.plot(+u*fc, +v*fc,'%s,'%color, ms=0.01, label=telescope_name,alpha=0.05, rasterized=True)
+			ax.plot(-u*fc, -v*fc, '%s,'%color, ms=0.01,alpha=0.005,rasterized=True)
+		ax.plot(+u*fc, +v*fc,'%s,'%color, ms=0.01, alpha=0.05,rasterized=True)
+		ax.plot(-u*fc, -v*fc, '%s,'%color, ms=0.01,alpha=0.05,rasterized=True)
 	#lgnd = ax.legend(numpoints=1, markerscale=6, frameon=False, ncol=2, prop={'size':8})
 	return ax
 
@@ -81,14 +69,14 @@ def make_uvcov(msfiles,plotfile):
 	ax.legend(custom_lines, telescope_names)
 		#ax1.yaxis.set_label_position("right")
 		#ax1.set_ylabel('Frequency [GHz]')
-	ax.set_xlabel('V [Mlambda]')
-	ax.set_ylabel('U [Mlambda]')
+	ax.set_xlabel(r'V [M$\lambda$]')
+	ax.set_ylabel(r'U [M$\lambda$]')
 	ax.set_aspect('equal')
 	main_lim = np.max(np.abs(ax.get_ylim() + ax.get_xlim()))
 	ax.set_xlim(-main_lim, +main_lim)
 	ax.set_ylim(-main_lim, +main_lim)
 	#ax.legend()
-	fig.savefig(plotfile, dpi=1500, bbox_inches='tight')
+	fig.savefig(plotfile, dpi=500, bbox_inches='tight',rasterized=True)
 
 
 try:
