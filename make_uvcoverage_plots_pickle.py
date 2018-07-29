@@ -46,14 +46,14 @@ def single_uvcov(u, v, freqs, ax,color,telescope_name):
                 print('Frequency plotted: %.5e' % freqi)
 		fc = freqi/c/1e6
 		if i == 0:
-			ax.plot(+u*fc, +v*fc, marker='.', ms=0.01, ls='',
-					 color=color, mec=color, label=telescope_name,alpha=0.005, rasterized=True)
-			ax.plot(-u*fc, -v*fc, marker='.', ms=0.01, ls='',
-					 color=color, mec=color,alpha=0.005,rasterized=True)
-		ax.plot(+u*fc, +v*fc, marker='.', ms=0.01, ls='',
-				 color=color, mec=color,alpha=0.005,rasterized=True)
-		ax.plot(-u*fc, -v*fc, marker='.', ms=0.01, ls='',
-				 color=color, mec=color,alpha=0.005,rasterized=True)
+			ax.scatter(+u*fc, +v*fc, marker='.', s=0.01,
+					 color=color, label=telescope_name,alpha=0.005, rasterized=True)
+			ax.scatter(-u*fc, -v*fc, marker='.', s=0.01,
+					 color=color,alpha=0.005,rasterized=True)
+		ax.scatter(+u*fc, +v*fc, marker='.', s=0.01,
+				 color=color,alpha=0.005,rasterized=True)
+		ax.scatter(-u*fc, -v*fc, marker='.', s=0.01,
+				 color=color,alpha=0.005,rasterized=True)
 	#lgnd = ax.legend(numpoints=1, markerscale=6, frameon=False, ncol=2, prop={'size':8})
 	return ax
 
