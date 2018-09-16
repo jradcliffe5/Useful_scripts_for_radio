@@ -37,11 +37,15 @@ def single_uvcov(u, v, freqs, ax,color,telescope_name):
 	for i, freqi in enumerate(freqs):
                 print('Frequency plotted: %.5e' % freqi)
 		fc = freqi/c/1e6
+		if telescope_name == 'EVN':
+			alpha = 0.08
+		else:
+			alpha = 0.08
 		if i == 0:
-			ax.plot(+u*fc, +v*fc,'%s,'%color, ms=0.01, label=telescope_name,alpha=0.05, rasterized=True)
-			ax.plot(-u*fc, -v*fc, '%s,'%color, ms=0.01,alpha=0.005,rasterized=True)
-		ax.plot(+u*fc, +v*fc,'%s,'%color, ms=0.01, alpha=0.05,rasterized=True)
-		ax.plot(-u*fc, -v*fc, '%s,'%color, ms=0.01,alpha=0.05,rasterized=True)
+			ax.plot(+u*fc, +v*fc,'%s,'%color, ms=0.01, label=telescope_name,alpha=alpha, rasterized=True)
+			ax.plot(-u*fc, -v*fc, '%s,'%color, ms=0.01,alpha=alpha,rasterized=True)
+		ax.plot(+u*fc, +v*fc,'%s,'%color, ms=0.01, alpha=alpha,rasterized=True)
+		ax.plot(-u*fc, -v*fc, '%s,'%color, ms=0.01,alpha=alpha,rasterized=True)
 	#lgnd = ax.legend(numpoints=1, markerscale=6, frameon=False, ncol=2, prop={'size':8})
 	return ax
 
@@ -75,7 +79,6 @@ def make_uvcov(msfiles,plotfile):
 	main_lim = np.max(np.abs(ax.get_ylim() + ax.get_xlim()))
 	ax.set_xlim(-main_lim, +main_lim)
 	ax.set_ylim(-main_lim, +main_lim)
-	#ax.legend()
 	fig.savefig(plotfile, dpi=500, bbox_inches='tight',rasterized=True)
 
 

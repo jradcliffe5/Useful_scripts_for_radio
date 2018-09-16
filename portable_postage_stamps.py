@@ -25,7 +25,7 @@ fig_size = plt.rcParams["figure.figsize"]
 # Prints: [8.0, 6.0]
 
 # Set figure width to 9 and height to 9
-rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+rc('font', **{'family': 'DejaVu Sans', 'serif': ['Computer Modern']})
 ## for Palatino and other serif fonts use:
 #rc('font',**{'family':'serif','serif':['Palatino']})
 rc('text', usetex=True)

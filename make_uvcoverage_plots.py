@@ -122,7 +122,7 @@ def make_uvcov(msfiles,save_uv,plotfile):
 	ax.set_xlim(-main_lim, +main_lim)
 	ax.set_ylim(-main_lim, +main_lim)
 	#ax.legend()
-	fig.savefig(plotfile, dpi=1500, bbox_inches='tight')
+	fig.savefig(plotfile, dpi=150, bbox_inches='tight')
 
 
 try:
