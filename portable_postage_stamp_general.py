@@ -1,3 +1,5 @@
+from astropy.table import Table
+from astropy.io import fits
 import matplotlib
 import matplotlib.pyplot as plt
 from astropy.io import fits
@@ -15,7 +17,6 @@ import matplotlib.cm as cm
 from matplotlib.patches import Ellipse
 from astropy.coordinates import SkyCoord
 from matplotlib import rcParams
-
 rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 ## for Palatino and other serif fonts use:
 #rc('font',**{'family':'serif','serif':['Palatino']})
@@ -25,7 +26,7 @@ fig_size = plt.rcParams["figure.figsize"]
 # Prints: [8.0, 6.0]
 
 # Set figure width to 9 and height to 9
-rc('font', **{'family': 'DejaVu Sans', 'serif': ['Computer Modern']})
+rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 ## for Palatino and other serif fonts use:
 #rc('font',**{'family':'serif','serif':['Palatino']})
 rc('text', usetex=True)
@@ -42,40 +43,29 @@ matplotlib.rcParams.update({'font.size': 22})
 plt.ioff()
 print "Current size:", fig_size
 
-def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
-                             log_contour_scale,nlevs):
+def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize, units, logthresh,log_contour_scale,nlevs):
     logthresh = -1*logthresh
     nlevs = nlevs
     do_rms_contours = 'False'
-    for i in catalog.columns:
-        if i.startswith('xmin'):
-            RA_min = i
-        if i.startswith('xmax'):
-            RA_max = i
-        elif i.startswith('ymin'):
-            Dec_min = i
-        elif i.startswith('ymax'):
-            Dec_max = i
-        elif i.startswith('RA_p'):
-            RA_world = i
-        elif i.startswith('Dec_p'):
-            Dec_world = i
-    RA_min = catalog[RA_min]
-    RA_max = catalog[RA_max]
-    Dec_min = catalog[Dec_min]
-    Dec_max = catalog[Dec_max]
     subimsize = int(subimsize / 2.)
     hdu = fits.open(fitsfile)
     image_data = hdu['PRIMARY'].data
     bmaj = hdu[0].header['BMAJ'] / hdu[0].header['CDELT2']
     bmin = hdu[0].header['BMIN'] / hdu[0].header['CDELT2']
     bpa = hdu[0].header['BPA']
-    if image_data.ndim > 2:
+    ndims = image_data.ndim
+    if ndims > 2:
         image_data = image_data[0, 0, :, :]
-    print 'Making postage stamps for the %d sources in the catalogue' % len(RA_min)
-    for i in range(len(RA_min)):
+    c = SkyCoord(catalogue[ra_col],catalogue[dec_col],unit=col_unit)
+    print 'Making postage stamps for the %d sources in the catalogue' % len(catalogue[ra_col])
+
+    for i in range(len(catalogue[ra_col])):
         try:
             wcs = WCS(hdu['PRIMARY'].header)
+            if ndims > 2:
+                central_pix_coord = wcs.wcs_world2pix(c.ra[i],c.dec[i],1,1,1)
+            else:
+                central_pix_coord = wcs.wcs_world2pix(c.ra[i],c.dec[i],1)
             if units == 'uJy':
                 flux_scaler = 1E6
             elif units == 'mJy':
@@ -85,36 +75,28 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
             else:
                 print 'oopsie'
                 exit()
-            ### Make square plots
-            if ((Dec_max[i] - Dec_min[i]) > (RA_max[i] - RA_min[i])):
-                RA_min2 = ((int(RA_min[i]) + int(RA_max[i])) / 2.) - (
-                    (Dec_max[i] - Dec_min[i]) / 2.)
-                RA_max2 = ((int(RA_min[i]) + int(RA_max[i])) / 2.) + (
-                    (Dec_max[i] - Dec_min[i]) / 2.)
-                Dec_min2 = Dec_min[i]
-                Dec_max2 = Dec_max[i]
-            else:
-                Dec_min2 = ((int(Dec_min[i]) + int(Dec_max[i])) / 2.) - (
-                    (RA_max[i] - RA_min[i]) / 2.)
-                Dec_max2 = ((int(Dec_min[i]) + int(Dec_max[i])) / 2.) + (
-                    (RA_max[i] - RA_min[i]) / 2.)
-                RA_min2 = RA_min[i]
-                RA_max2 = RA_max[i]
+            RA_min2 = int(central_pix_coord[0]) - subimsize
+            RA_max2 = int(central_pix_coord[0]) + subimsize
+            Dec_min2 = int(central_pix_coord[1]) - subimsize
+            Dec_max2 = int(central_pix_coord[1]) + subimsize
             ### Cut out image
-            image_data2 = image_data[
-                int(Dec_min2) - subimsize:int(Dec_max2) + subimsize,
-                int(RA_min2) - subimsize:int(RA_max2) + subimsize] * flux_scaler
-            RA_pix = ((int(RA_min2) - subimsize) + (int(RA_max2) + subimsize)) / 2.
-            Dec_pix = ((int(Dec_min2) - subimsize) +
-                       (int(Dec_max2) + subimsize)) / 2.
+            image_data2 = image_data[Dec_min2:Dec_max2,RA_min2:RA_max2] * flux_scaler
+            RA_pix = (RA_min2 + RA_max2) / 2.
+            Dec_pix = (Dec_min2 + Dec_max2) / 2.
+            print RA_pix, Dec_pix
             ## Adjust wcs
-            RA_w, Dec_w = wcs.wcs_pix2world(RA_pix, Dec_pix, 1)
             wcs2 = wcs
-            wcs2.wcs.crval = [RA_w, Dec_w]
-            wcs2.wcs.crpix = [subimsize, subimsize]
+            if ndims>2:
+                RA_w, Dec_w = wcs.wcs_pix2world(RA_pix, Dec_pix, 1,1,1)[0:2]
+                wcs2.wcs.crval = [RA_w, Dec_w,wcs.wcs.crval[2],wcs.wcs.crval[3]]
+                wcs2.wcs.crpix = [subimsize, subimsize,wcs.wcs.crpix[2],wcs.wcs.crpix[3]]
+            else:
+                RA_w, Dec_w = wcs.wcs_pix2world(RA_pix, Dec_pix, 1)
+                wcs2.wcs.crval = [RA_w, Dec_w]
+                wcs2.wcs.crpix = [subimsize, subimsize]
             ### Make name
             coord = SkyCoord(
-                catalog[RA_world][i], catalog[Dec_world][i], unit=('deg', 'deg'))
+                catalogue[ra_col][i], catalogue[dec_col][i], unit=col_unit)
             if coord.dec.dms.d < 0:
                 neg = '-'
             else:
@@ -265,6 +247,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
                                          nlevs),
                                      decimals=1)[1:-1])
             cont = ax.contour(image_data2, levels=levs, cmap='gray_r', alpha=0.5)
+            ax.scatter(coord.ra.degree, coord.dec.degree, transform=ax.get_transform('icrs'), s=60, edgecolor='k', facecolor='k', marker='+', alpha=1)
             cb.add_lines(cont)
             cb.ax.set_xticklabels(tick)
             cax.set_xlabel(
@@ -289,6 +272,7 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
             plt.savefig(name + '_plot.pdf', bbox_inches='tight', clobber=True,orientation='landscape')
             plt.clf()
             del wcs2
+
         except ValueError:
             print 'fuck'
     hdu.close()
@@ -299,17 +283,3 @@ def make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
     os.system('pdfjoin --no-landscape --rotateoversize False -o %s.pdf *pdf' % fitsfile.split('.fits')[0])
     os.system('gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/default -dNOPAUSE -dQUIET -dBATCH -dDetectDuplicateImages -dCompressFonts=true -r50 -sOutputFile=%s_small.pdf %s.pdf' % ( fitsfile.split('.fits')[0],fitsfile.split('.fits')[0]))
     os.system('mv *.pdf postage_stamps/')
-
-try:
-    fitsfile = str(sys.argv[sys.argv.index('portable_postage_stamps.py')+1])
-    catalog = str(sys.argv[sys.argv.index('portable_postage_stamps.py')+2])
-    subimsize = int(sys.argv[sys.argv.index('portable_postage_stamps.py')+3])
-    units = str(sys.argv[sys.argv.index('portable_postage_stamps.py')+4])
-    logthresh = float(sys.argv[sys.argv.index('portable_postage_stamps.py')+5])
-    log_contour_scale = str(sys.argv[sys.argv.index('portable_postage_stamps.py')+6])
-    nlevs = int(sys.argv[sys.argv.index('portable_postage_stamps.py')+7])
-    catalog = pd.read_csv(catalog)
-    make_postage_stamps_fits(fitsfile, catalog, subimsize, units, logthresh,
-                                 log_contour_scale,nlevs)
-except IndexError:
-    print 'Usage python portable_postage_stamps.py <fitsfile> <catalog> <subimsize> <units> <logthresh> <log_contour_scale> <nlevs>'
