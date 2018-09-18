@@ -45,7 +45,7 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 	for i in range(len(catalogue[ra_col])):
 		#print(running_counter % (subplot_x*subplot_y))
 		if running_counter % (subplot_x*subplot_y) == 0:
-			plt.clf()
+			plt.close('all')
 			fig = plt.figure(figsize=(4*subplot_x, 4*subplot_y))
 			gs = gridspec.GridSpec(subplot_x, subplot_y)
 			gs.update(wspace=0.11, hspace=0.15)
@@ -75,6 +75,9 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 			Dec_max2 = int(central_pix_coord[1]) + subimsize
 			### Cut out image
 			image_data2 = image_data[Dec_min2:Dec_max2,RA_min2:RA_max2] * flux_scaler
+			print(image_data2.shape)
+			if (image_data2.shape[0] != int(2*subimsize)) or (image_data2.shape[0] != int(2*subimsize)):
+				raise ValueError
 			RA_pix = (RA_min2 + RA_max2) / 2.
 			Dec_pix = (Dec_min2 + Dec_max2) / 2.
 			## Adjust wcs
@@ -301,7 +304,7 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 			traceback.print_exc()
 	hdu.close()
 	del image_data
-	os.system('tar cf %s.tar.gz %s_*.pdf' % (plot_prefix,plot_prefix))
+	#os.system('tar cf %s.tar.gz %s_*.pdf' % (plot_prefix,plot_prefix))
 	#os.system('rm postage_stamps/%s.pdf' % fitsfile.split('.fits')[0])
 	#os.system('ulimit -S -n 16192')
 	#os.system('pdfjoin --no-landscape --rotateoversize False -o %s.pdf *pdf' % fitsfile.split('.fits')[0])
