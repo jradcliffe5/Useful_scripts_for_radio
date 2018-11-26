@@ -20,14 +20,22 @@ import traceback
 import matplotlib.gridspec as gridspec
 
 
-def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize, logthresh,log_contour_scale,nlevs,flux_scaler,subplot_x,subplot_y,plot_prefix,z_col):
+def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize, logthresh,log_contour_scale,nlevs,flux_scaler,subplot_x,subplot_y,plot_prefix,z_col,colorbar=True,hidexy=False):
 	matplotlib.rcParams.update({'font.size': 10})
 	logthresh = -1*logthresh
 	nlevs = nlevs
-	do_rms_contours = 'False'
 	subimsize = int(subimsize / 2.)
-	hdu = fits.open(fitsfile)
-	image_data = hdu['PRIMARY'].data
+	if isinstance(fitsfile,(list,)):
+		do_rms_contours = True
+		hdu = fits.open(fitsfile[0])
+		image_data = hdu['PRIMARY'].data
+		hdu_cont = fits.open(fitsfile[1])
+		print(hdu_cont)
+		image_data_cont = hdu_cont['PRIMARY'].data.squeeze()
+	else:
+		do_rms_contours = False
+		hdu = fits.open(fitsfile)
+		image_data = hdu['PRIMARY'].data
 	try:
 		bmaj = hdu[0].header['BMAJ'] / hdu[0].header['CDELT2']
 		bmin = hdu[0].header['BMIN'] / hdu[0].header['CDELT2']
@@ -43,31 +51,14 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 	page_counter = 0
 	running_counter = 0
 	for i in range(len(catalogue[ra_col])):
-		#print(running_counter % (subplot_x*subplot_y))
-		if running_counter % (subplot_x*subplot_y) == 0:
-			plt.close('all')
-			fig = plt.figure(figsize=(4*subplot_x, 4*subplot_y))
-			gs = gridspec.GridSpec(subplot_x, subplot_y)
-			gs.update(wspace=0.11, hspace=0.15)
-			x_counter = 0
-			y_counter = 0
-			page_counter +=1
 		try:
-			wcs = WCS(hdu['PRIMARY'].header)
-			if ndims > 2:
-				central_pix_coord = wcs.wcs_world2pix(c.ra[i],c.dec[i],1,1,1)
-			else:
-				central_pix_coord = wcs.wcs_world2pix(c.ra[i],c.dec[i],1)
-			'''
-			if units == 'uJy':
-				flux_scaler = 1E6
-			elif units == 'mJy':
-				flux_scaler = 1E3
-			elif units == 'Jy':
-				flux_scaler = 1
-			else:
-				flux_scaler = flux_scaler
-			'''
+			#print(running_counter % (subplot_x*subplot_y))
+
+			wcs = WCS(hdu['PRIMARY'].header,naxis=2)
+			#if ndims > 4:
+			#	cenåtral_pix_coord = wcs.wcs_world2pix(c.ra[i],c.dec[i],1,1,1)
+			#else:
+			central_pix_coord = wcs.wcs_world2pix(c.ra[i],c.dec[i],1)
 			flux_scaler = flux_scaler
 			RA_min2 = int(central_pix_coord[0]) - subimsize
 			RA_max2 = int(central_pix_coord[0]) + subimsize
@@ -76,23 +67,57 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 			### Cut out image
 			image_data2 = image_data[Dec_min2:Dec_max2,RA_min2:RA_max2] * flux_scaler
 			print(image_data2.shape)
-			if (image_data2.shape[0] != int(2*subimsize)) or (image_data2.shape[0] != int(2*subimsize)):
+			if (image_data2.shape[0] != int(2*subimsize)) or (image_data2.shape[1] != int(2*subimsize)):
+				raise ValueError
+			print(np.sum(image_data2))
+			if np.sum(image_data2) == 0.0:
 				raise ValueError
 			RA_pix = (RA_min2 + RA_max2) / 2.
 			Dec_pix = (Dec_min2 + Dec_max2) / 2.
 			## Adjust wcs
 			wcs2 = wcs
-			#print(x_counter,y_counter)
-			print(x_counter,y_counter)
+			RA_w, Dec_w = wcs.wcs_pix2world(RA_pix, Dec_pix, 1)
+			wcs2.wcs.crval = [RA_w, Dec_w]
+			wcs2.wcs.crpix = [subimsize, subimsize]
+			if running_counter % (subplot_x*subplot_y) == 0:
+				#plt.close('all')
+				fig = plt.figure(figsize=(4*subplot_x, 4*subplot_y))
+				gs = gridspec.GridSpec(subplot_x, subplot_y)
+				if colorbar == True:
+					gs.update(wspace=0.11, hspace=0.15)
+				else:
+					gs.update(wspace=0.2, hspace=0.15)
+				if hidexy == True:
+					gs.update(wspace=0.0, hspace=0.01)
+				x_counter = 0
+				y_counter = 0
+				page_counter +=1
+			if do_rms_contours == True:
+				wcs_cont = WCS(hdu_cont['PRIMARY'].header,naxis=2)
+				#if ndims > 4:
+				#	central_pix_coord = wcs.wcs_world2pix(c.ra[i],c.dec[i],1,1,1)
+				#else:
+				central_pix_coord = wcs_cont.wcs_world2pix(c.ra[i],c.dec[i],1)
+				flux_scaler = flux_scaler
+				print(central_pix_coord)
+				subimsize_cont = int((np.abs(wcs2.wcs.cd[0][0])*subimsize)/np.abs(wcs_cont.wcs.cdelt[0]))
+				print(subimsize_cont)
+				RA_min2 = int(central_pix_coord[0]) - subimsize_cont
+				RA_max2 = int(central_pix_coord[0]) + subimsize_cont
+				Dec_min2 = int(central_pix_coord[1]) - subimsize_cont
+				Dec_max2 = int(central_pix_coord[1]) + subimsize_cont
+				### Cut out image
+				image_data_cont2 = image_data_cont[Dec_min2:Dec_max2,RA_min2:RA_max2]
+				#if (image_data_cont2.shape[0] != int(2*subimsize_cont)) or (image_data_cont2.shape[1] != int(2*subimsize_cont)):
+				#	raise ValueError
+				RA_pix = (RA_min2 + RA_max2) / 2.
+				Dec_pix = (Dec_min2 + Dec_max2) / 2.
+				## Adjust wcs
+				wcs2_cont = wcs_cont
+				RA_w, Dec_w = wcs_cont.wcs_pix2world(RA_pix, Dec_pix, 1)
+				wcs2_cont.wcs.crval = [RA_w, Dec_w]
+				wcs2_cont.wcs.crpix = [subimsize_cont, subimsize_cont]
 			ax = fig.add_subplot(gs[x_counter,y_counter],projection=wcs2)
-			if ndims>2:
-				RA_w, Dec_w = wcs.wcs_pix2world(RA_pix, Dec_pix, 1,1,1)[0:2]
-				wcs2.wcs.crval = [RA_w, Dec_w,wcs.wcs.crval[2],wcs.wcs.crval[3]]
-				wcs2.wcs.crpix = [subimsize, subimsize,wcs.wcs.crpix[2],wcs.wcs.crpix[3]]
-			else:
-				RA_w, Dec_w = wcs.wcs_pix2world(RA_pix, Dec_pix, 1)
-				wcs2.wcs.crval = [RA_w, Dec_w]
-				wcs2.wcs.crpix = [subimsize, subimsize]
 			### Make name
 			coord = SkyCoord(
 				catalogue[ra_col].iloc[i], catalogue[dec_col].iloc[i], unit=col_unit)
@@ -121,19 +146,7 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 			lat = ax.coords['dec']
 			lon.set_major_formatter('d.ddd')
 			lat.set_major_formatter('d.ddd')
-			'''
-			if x_counter==0:
-				lon.set_major_formatter('d.ddd')
-			else:
-				lon.set_ticklabel_visible(False)
-				lon.set_axislabel('')
-			### Some VLBI specific shit
-			if (y_counter + 1) == subplot_y:
-				lat.set_major_formatter('d.ddd')
-			else:
-				lat.set_ticklabel_visible(False)
-				lat.set_axislabel('')
-			'''
+
 			### Set labels for axes
 			#lon.set_axislabel('Right Ascension (J2000)', minpad=1.5)
 			#lat.set_axislabel('Declination (J2000)', minpad=1)
@@ -141,9 +154,16 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 			#ax.set_xlim(int(RA_pix[i]) - subimsize,int(RA_pix[i]) + subimsize)
 			#ax.set_ylim(int(Dec_pix[i]) - subimsize,int(Dec_pix[i]) + subimsize)
 			### Makes colorbar on top
-			divider = make_axes_locatable(ax)
-			cax = divider.append_axes(
-				"top", size="5%", pad=0.00, axes_class=matplotlib.axes.Axes)
+			if hidexy == True:
+				lon.set_ticks_visible(False)
+				lon.set_ticklabel_visible(False)
+				lat.set_ticks_visible(False)
+				lat.set_ticklabel_visible(False)
+				#lon.set_axislabel('')
+				#lat.set_axislabel('')
+			if colorbar == True:
+				cax,kw=matplotlib.colorbar.make_axes(ax,location='top',anchor=(1,1),fraction=0.1,\
+				pad=0.0,aspect=30)
 			if np.max(image_data2) > 60:
 				im = ax.imshow(
 					image_data2,
@@ -186,8 +206,11 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 					print('log_contour_scale can only be \'e\', 2 or 10')
 					exit()
 				tick = tick.astype(int)
-				cb = plt.colorbar(
-					orientation="horizontal", mappable=im, cax=cax, ticks=tick)
+				if colorbar == True:
+					cb = fig.colorbar(mappable=im, ticks=tick, cax=cax, **kw)
+					cb.ax.tick_params(labelsize=10)
+				#cb = plt.colorbar(
+				#	orientation="horizontal", mappable=im, cax=cax, ticks=tick)
 			else:
 				im = ax.imshow(
 					image_data2,
@@ -203,14 +226,23 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 									 decimals=1)[1:].astype(int))
 				tick = np.append(tick, np.max(image_data2))
 				tick = tick.astype(int)
-				cb = plt.colorbar(
-					orientation="horizontal",
-					mappable=im,
-					cax=cax,
-					ticks=tick,
-					format='{:.0f}')
+				if colorbar == True:
+					cb = plt.colorbar(
+						orientation="horizontal",
+						mappable=im,
+						cax=cax,
+						ticks=tick,
+						format='{:.0f}')
 			### Set tick position
-			cb.ax.xaxis.set_ticks_position('top')
+			if colorbar == True:
+				cb.ax.xaxis.set_ticks_position('top')
+			if do_rms_contours == True:
+				try:
+					print('doing contours')
+					levs = np.linspace(-2*np.nanmin(image_data_cont2),np.nanmax(image_data_cont2),7)
+					cont = ax.contour(image_data_cont2, levels=levs, cmap='gray_r', alpha=0.5,transform=ax.get_transform(wcs2_cont))
+				except:
+					pass
 			'''
 			if np.max(image_data2) > 60:
 				if do_rms_contours == 'False':
@@ -260,10 +292,11 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 									 decimals=1)[1:-1])
 			'''
 			#cont = ax.contour(image_data2, levels=levs, cmap='gray_r', alpha=0.5)
-			ax.scatter(coord.ra.degree, coord.dec.degree, transform=ax.get_transform('icrs'), s=60, edgecolor='k', facecolor='k', marker='+', alpha=1)
+			#ax.scatter(coord.ra.degree, coord.dec.degree, transform=ax.get_transform('icrs'), s=60, edgecolor='k', facecolor='k', marker='+', alpha=1)
 			#cb.add_lines(cont)
-			cb.ax.set_xticklabels(tick)
-			cb.ax.minorticks_off()
+			if colorbar == True:
+				cb.ax.set_xticklabels(tick)
+				cb.ax.minorticks_off()
 			if beam_info == True:
 				circ = Ellipse(
 					(10, 10),
@@ -291,7 +324,7 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 					horizontalalignment='left',
 					transform=ax.transAxes,color='w')
 			if ((subplot_x==(x_counter+1)) and (subplot_y==(y_counter+1))) or (i==(len(catalogue[ra_col])-1)):
-				plt.savefig('%s_%d.pdf' % (plot_prefix,page_counter),dpi=100, bbox_inches='tight', clobber=True,orientation='landscape')
+				fig.savefig('%s_%d.pdf' % (plot_prefix,page_counter),dpi=100, clobber=True,orientation='landscape',bbox_inches='tight')
 				plt.clf()
 			if (int(x_counter+1) % subplot_x) == 0:
 				y_counter += 1
@@ -302,6 +335,10 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 			running_counter += 1
 		except ValueError:
 			traceback.print_exc()
+			if (i==(len(catalogue[ra_col])-1)):
+				fig.savefig('%s_%d.pdf' % (plot_prefix,page_counter),dpi=100, clobber=True,orientation='landscape',bbox_inches='tight')
+				plt.clf()
+
 	hdu.close()
 	del image_data
 	#os.system('tar cf %s.tar.gz %s_*.pdf' % (plot_prefix,plot_prefix))

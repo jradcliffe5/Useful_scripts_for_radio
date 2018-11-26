@@ -51,7 +51,7 @@ def latex_float_err(f,f_err):
             base_err, exponent_err = float_err.split("e")
             if int(exponent) == int(exponent_err):
                 string = string + [r"$(%s\pm%s) \times 10^{{%s}}$" % (base,base_err, int(exponent))]
-            else: 
+            else:
                 x = int(exponent)-int(exponent_err)
                 string = string + [r"$(%s\pm %.1f) \times 10^{{%s}}$" % (base,float(base_err)/(10**float(x)), int(exponent))]
         else:
@@ -68,7 +68,7 @@ def latex_float_err_res(f,f_err,res):
             base_err, exponent_err = float_err.split("e")
             if int(exponent) == int(exponent_err):
                 string = string + [r"$(%s\pm%s) \times 10^{{%s}}$" % (base,base_err, int(exponent))]
-            else: 
+            else:
                 x = int(exponent)-int(exponent_err)
                 string = string + [r"$(%s\pm %.1f) \times 10^{{%s}}$" % (base,float(base_err)/(10**float(x)), int(exponent))]
         else:
@@ -76,14 +76,14 @@ def latex_float_err_res(f,f_err,res):
     for i in range(len(string)):
         if res[i] == 1:
             string[i] = '$>$'+string[i]
-            
+
     return string
 
 
 def match_catalogues(cat1, cat2, name1, name2, RA1, Dec1, unit1, RA2, Dec2, unit2, columns1, columns2, distance,keep_cat1,keep_cat2):
     ##Check for duplicates
     where = np.where(pd.concat([pd.DataFrame(cat1.columns),pd.DataFrame(cat2.columns)]).reset_index(drop=True).duplicated()==True)[0]-len(pd.DataFrame(cat1.columns))
-    print columns2
+    print(columns2)
     for i in where:
         x = cat2.columns[i]
         cat2 = cat2.rename(index=str, columns={x: x+'_1'})
@@ -102,13 +102,13 @@ def match_catalogues(cat1, cat2, name1, name2, RA1, Dec1, unit1, RA2, Dec2, unit
         frames = frames + [cat1[i].iloc[idxcatalog].reset_index(drop=True)]
     for i in columns2:
         frames = frames + [cat2[i].iloc[idxc].reset_index(drop=True)]
-    plt.clf()
-    plt.figure(1)
-    plt.hist(d2d.arcsec, histtype='step', range=(0,distance.value))
-    plt.xlabel('separation [%s]'% distance.unit)
-    plt.title('On-sky separation')
-    plt.savefig('separation_%s_%s' % (name1,name2))
-    plt.show()
+    #plt.clf()
+    #plt.figure(1)
+    #plt.hist(d2d.arcsec, histtype='step', range=(0,distance.value))
+    #plt.xlabel('separation [%s]'% distance.unit)
+    #plt.title('On-sky separation')
+    #plt.savefig('separation_%s_%s' % (name1,name2))
+    #plt.show()
     #plt.figure(2)
     #plt.hist(d2d.arcsec, histtype='step')
     #plt.hist(d2d_ran.arcsec, histtype='step')
@@ -122,9 +122,57 @@ def match_catalogues(cat1, cat2, name1, name2, RA1, Dec1, unit1, RA2, Dec2, unit
         x = cat1.merge(x, how='left')
     return x
 
+def match_catalogues_v2(cat1, cat2, name1, name2, RA1, Dec1, unit1, RA2, Dec2, unit2, columns1, columns2, distance,keep_cat1,keep_cat2):
+	##Check for duplicates
+	where = np.where(pd.concat([pd.DataFrame(cat1.columns),pd.DataFrame(cat2.columns)]).reset_index(drop=True).duplicated()==True)[0]-len(pd.DataFrame(cat1.columns))
+	#print(columns2)
+	for i in where:
+		x = cat2.columns[i]
+		cat2 = cat2.rename(index=str, columns={x: x+'_1'})
+		if x in columns2:
+			columns2[np.where(columns2==x)[0][0]] = x+'_1' ## Replace duplicates in columns 2
+			if x.startswith(RA2):
+				RA2 = x+'_1'
+			if x.startswith(Dec2):
+				Dec2 = x+'_1'
+		#print 'Duplicates:%s' % cat2.columns[i]
+	coo_cat1 = SkyCoord(cat1[RA1], cat1[Dec1],unit=unit1)
+	coo_cat2 = SkyCoord(cat2[RA2], cat2[Dec2],unit=unit2)
+	idxc, idxcatalog, d2d, d3d = coo_cat1.search_around_sky(coo_cat2, distance)
+	cat1_tot = np.linspace(0,len(cat1)-1,len(cat1)).astype(int)
+	cat2_tot = np.linspace(0,len(cat2)-1,len(cat2)).astype(int)
+	frames=[]
+	non_frames = []
+	frames = cat1[[columns1]].iloc[idxcatalog].reset_index(drop=True)
+	frames = pd.concat([frames,cat2[[columns2]].iloc[idxc].reset_index(drop=True)],axis=1)
+	#for i in columns1:
+	#	frames = frames + [cat1[i].iloc[idxcatalog].reset_index(drop=True)]
+	#	if keep_cat1 == True:
+	#		non_frames = non_frames + [cat1[i].iloc[np.setdiff1d(cat1_tot,idxcatalog)].reset_index(drop=True)]
+	#for i in columns2:
+	#	frames = frames + [cat2[i].iloc[idxc].reset_index(drop=True)]
+	#	if keep_cat2 == True:
+	#		non_frames = non_frames + [cat2[i].iloc[np.setdiff1d(cat2_tot,idxc)].reset_index(drop=True)]
+	print(frames)
+	#plt.clf()
+	#plt.figure(1)
+	#plt.hist(d2d.arcsec, histtype='step', range=(0,distance.value))
+	#plt.xlabel('separation [%s]'% distance.unit)
+	#plt.title('On-sky separation')
+	#plt.savefig('separation_%s_%s' % (name1,name2))
+	#plt.show()
+	#plt.figure(2)
+	#plt.hist(d2d.arcsec, histtype='step')
+	#plt.hist(d2d_ran.arcsec, histtype='step')
+	#plt.xlabel('separation [%s]'% distance.unit)
+	#plt.title('On-sky separation')
+	#plt.tight_layout()
+	x = frames
+	#x=pd.concat(frames,axis=1)
+
 def nearest_match_to(coordinates,catalog,RA1,DEC1,unit1,RA2,DEC2,unit2,distance):
-    coords = SkyCoord(ra=coordinates[RA1], dec=coordinates[DEC1], unit=unit1)  
-    catalog_coords = SkyCoord(ra=catalog[RA2], dec=catalog[DEC2], unit=unit2)  
+    coords = SkyCoord(ra=coordinates[RA1], dec=coordinates[DEC1], unit=unit1)
+    catalog_coords = SkyCoord(ra=catalog[RA2], dec=catalog[DEC2], unit=unit2)
     idx, d2d, d3d = coords.match_to_catalog_sky(catalog_coords)
     separation = pd.DataFrame({'Separation':d2d.arcsec})
     RA, Dec = coords.spherical_offsets_to(catalog_coords[idx])
@@ -137,12 +185,12 @@ def Monte_carlo_d_L_errs(z,z_upp,z_low,plot_path):
     x = []
     f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
     for i in range(len(z)):
-        z_err = np.random.normal(z[i],(z_upp[i]+z_low[i])/2,100000)
+        z_err = np.random.normal(z[i],(z_upp[i]+z_low[i])/2.,100000)
         z_err =z_err[z_err > 0]
         d_L = Planck15.luminosity_distance(z_err).to(u.m).value
         ax1.hist(z_err, 100,alpha=0.3)
         ax2.hist(d_L, 100,alpha=0.3)
-        print np.sqrt(np.var(d_L))
+        print(np.sqrt(np.var(d_L)))
         x = x + [np.sqrt(np.var(d_L))]
     ax1.set_xlabel('z')
     ax2.set_xlabel(r'$d_{L}$')
@@ -176,15 +224,15 @@ def orthoregress(x, y):
 def resolver(fitted_size, beam):
     if fitted_size < beam:
         return '$<$%.1f' % beam
-    else: 
+    else:
         return '%.1f' % fitted_size
-    
+
 def resolver_val(fitted_size, beam):
     if fitted_size < beam:
         return beam
-    else: 
+    else:
         return fitted_size
-    
+
 def minimum_resolvable_size(SNR,weighting,axes):
     return (2.**(2.-(weighting/2.)))*axes*np.sqrt((np.log(2)/np.pi)*np.log(SNR/(SNR-1)))
 
@@ -201,13 +249,13 @@ def variability(epoch1flux,epoch2flux,epoch1_err,epoch2_err):
 
 def Bayesian_binomial_confidence_interval(n,p,sigma):
     ## From Cameron+2011
-    c = scipy.special.erf(float(sigma)/np.sqrt(2)) ## create confidence interval based upon sigma
+    c = scipy.special.erf(float(sigma)/np.sqrt(2.)) ## create confidence interval based upon sigma
     k = p
     n = n
-    p_lower = dist.beta.ppf((1-c)/2.,k+1,n-k+1) 
+    p_lower = dist.beta.ppf((1-c)/2.,k+1,n-k+1)
     p_upper = dist.beta.ppf(1-(1-c)/2.,k+1,n-k+1)
     return p_lower, p_upper,k/n, (k/n)-p_lower, p_upper-(k/n)
-        
+
 def convert_columns(catalogue,suffix):
     for i in catalogue.columns:
         catalogue = catalogue.rename(index=str, columns={i: '%s_%s' % (i,suffix)})
@@ -227,5 +275,5 @@ def convert_degrees_to_hmsdms(ra, dec, roundingRA, roundingDec, form):
                                 str(np.round(c.ra.dms[2],roundingRA)).rjust(3+roundingRA, '0').ljust(3+roundingRA, '0')),\
           '%s:%s:%s' % (c.dec.dms[0],c.dec.dms[1],str(np.round(c.dec.dms[2],roundingDec)).rjust(3+roundingDec, '0').ljust(3+roundingDec, '0'))]
     else:
-        print 'Idiot, this converts from deg to \'hmsdms\' or \'dmsdms\' formats'
+        print('Idiot, this converts from deg to \'hmsdms\' or \'dmsdms\' formats')
     return Coords
