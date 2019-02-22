@@ -98,6 +98,8 @@ def make_uvcov(msfiles,save_uv,plotfile):
 		if save_uv == 'True':
 			u_save = np.array([])
 			v_save = np.array([])
+		if save_amp == 'True':
+			amp_save = np.array([])
 		for f in fields_ms:
 			u, v = read_uvw(msfile, f)
 			single_uvcov(u, v, freqs, ax,color=colors[i],telescope_name=telescope_name)
@@ -122,7 +124,7 @@ def make_uvcov(msfiles,save_uv,plotfile):
 	ax.set_xlim(-main_lim, +main_lim)
 	ax.set_ylim(-main_lim, +main_lim)
 	#ax.legend()
-	fig.savefig(plotfile, dpi=1500, bbox_inches='tight')
+	fig.savefig(plotfile, dpi=100, bbox_inches='tight')
 
 
 try:

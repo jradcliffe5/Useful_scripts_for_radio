@@ -16,7 +16,7 @@ def latex_float(f):
         float_str = "{0:.2g}".format(i)
         if "e" in float_str:
             base, exponent = float_str.split("e")
-            string = string + [r"{0} \times 10^{{{1}}}".format(base, int(exponent))]
+            string = string + [r"${0} \times 10^{{{1}}}$".format(base, int(exponent))]
         else:
             string = string + [float_str]
     return string
@@ -26,7 +26,7 @@ def latex_float_single(f):
     float_str = "{0:.2g}".format(f)
     if "e" in float_str:
         base, exponent = float_str.split("e")
-        string = r"{0} \times 10^{{{1}}}".format(base, int(exponent))
+        string = r"${0} \times 10^{{{1}}}$".format(base, int(exponent))
     else:
         string = float_str
     return string
@@ -36,7 +36,7 @@ def latex_float_single_e1(f):
     float_str = "{0:.1g}".format(f)
     if "e" in float_str:
         base, exponent = float_str.split("e")
-        string = r"{0} \times 10^{{{1}}}".format(base, int(exponent))
+        string = r"${0} \times 10^{{{1}}}$".format(base, int(exponent))
     else:
         string = float_str
     return string

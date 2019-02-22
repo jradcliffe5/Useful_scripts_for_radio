@@ -33,15 +33,30 @@ print "Current size:", fig_size
 
 def single_uvcov(u, v, freqs, ax,color,telescope_name):
 	c = 299792458.
-        print('Plotting uv coverage for %s' % telescope_name)
+	print('Plotting uv coverage for %s' % telescope_name)
+	amp_plot=False
 	for i, freqi in enumerate(freqs):
-                print('Frequency plotted: %.5e' % freqi)
+		print('Frequency plotted: %.5e' % freqi)
 		fc = freqi/c/1e6
-		if i == 0:
-			ax.plot(+u*fc, +v*fc,'%s,'%color, ms=0.01, label=telescope_name,alpha=0.05, rasterized=True)
-			ax.plot(-u*fc, -v*fc, '%s,'%color, ms=0.01,alpha=0.005,rasterized=True)
-		ax.plot(+u*fc, +v*fc,'%s,'%color, ms=0.01, alpha=0.05,rasterized=True)
-		ax.plot(-u*fc, -v*fc, '%s,'%color, ms=0.01,alpha=0.05,rasterized=True)
+		r = np.sqrt((u*fc)**2 + (v*fc)**2)
+		if amp_plot == True:
+			if i == 0:
+				ax.scatter(+u*fc, +v*fc,c=r,cmap='viridis', s=0.001,alpha=0.05, rasterized=True)
+				ax.scatter(-u*fc, -v*fc,c=r,cmap='viridis', s=0.001,alpha=0.05, rasterized=True)
+			ax.scatter(+u*fc, +v*fc,c=r,cmap='viridis', s=0.001,alpha=0.05, rasterized=True)
+			ax.scatter(-u*fc, -v*fc,c=r,cmap='viridis', s=0.001,alpha=0.05, rasterized=True)
+		else:
+			if i == 0:
+				ax.scatter(+u*fc, +v*fc,c='b', s=0.001,alpha=0.05, rasterized=True)
+				ax.scatter(-u*fc, -v*fc,c='b', s=0.001,alpha=0.05, rasterized=True)
+			ax.scatter(+u*fc, +v*fc,c='b', s=0.001,alpha=0.05, rasterized=True)
+			ax.scatter(-u*fc, -v*fc,c='b', s=0.001,alpha=0.05, rasterized=True)
+		#else:
+		#	if i == 0:
+		#		ax.plot(+u*fc, +v*fc,'%s,'%color, ms=0.01, label=telescope_name,alpha=0.05, rasterized=True)
+		#		ax.plot(-u*fc, -v*fc, '%s,'%color, ms=0.01,alpha=0.05,rasterized=True)
+		#	ax.plot(+u*fc, +v*fc,'%s,'%color, ms=0.01, alpha=0.05,rasterized=True)
+		#	ax.plot(-u*fc, -v*fc, '%s,'%color, ms=0.01,alpha=0.05,rasterized=True)
 	#lgnd = ax.legend(numpoints=1, markerscale=6, frameon=False, ncol=2, prop={'size':8})
 	return ax
 
@@ -65,8 +80,9 @@ def make_uvcov(msfiles,plotfile):
 		single_uvcov(u, v, freqs, ax,color=colors[i],telescope_name=telescope_name)
 		custom_lines = custom_lines + [Line2D([0], [0], color=colors[i], lw=4)]
 		telescope_names = telescope_names + [telescope_name]
+		del arrays
 
-	ax.legend(custom_lines, telescope_names)
+	#ax.legend(custom_lines, telescope_names)
 		#ax1.yaxis.set_label_position("right")
 		#ax1.set_ylabel('Frequency [GHz]')
 	ax.set_xlabel(r'V [M$\lambda$]')
@@ -76,7 +92,7 @@ def make_uvcov(msfiles,plotfile):
 	ax.set_xlim(-main_lim, +main_lim)
 	ax.set_ylim(-main_lim, +main_lim)
 	#ax.legend()
-	fig.savefig(plotfile, dpi=500, bbox_inches='tight',rasterized=True)
+	fig.savefig(plotfile, dpi=300, bbox_inches='tight',rasterized=True)
 
 
 try:

@@ -20,7 +20,7 @@ import traceback
 import matplotlib.gridspec as gridspec
 
 
-def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize, logthresh,log_contour_scale,nlevs,flux_scaler,subplot_x,subplot_y,plot_prefix,z_col,colorbar=True,hidexy=False):
+def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize, logthresh,log_contour_scale,nlevs,flux_scaler,subplot_x,subplot_y,plot_prefix,plot_col,colorbar=True,hidexy=False,plot_pos=False,cmap='magma'):
 	matplotlib.rcParams.update({'font.size': 10})
 	logthresh = -1*logthresh
 	nlevs = nlevs
@@ -45,7 +45,7 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 		beam_info = False
 	ndims = image_data.ndim
 	if ndims > 2:
-		image_data = image_data[0, 0, :, :]
+		image_data = image_data.squeeze()
 	c = SkyCoord(catalogue[ra_col],catalogue[dec_col],unit=col_unit)
 	print('Making postage stamps for the %d sources in the catalogue' % len(catalogue[ra_col]))
 	page_counter = 0
@@ -59,6 +59,8 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 			#	cenåtral_pix_coord = wcs.wcs_world2pix(c.ra[i],c.dec[i],1,1,1)
 			#else:
 			central_pix_coord = wcs.wcs_world2pix(c.ra[i],c.dec[i],1)
+			if np.any(np.array(central_pix_coord)<0):
+				raise ValueError
 			flux_scaler = flux_scaler
 			RA_min2 = int(central_pix_coord[0]) - subimsize
 			RA_max2 = int(central_pix_coord[0]) + subimsize
@@ -67,6 +69,8 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 			### Cut out image
 			image_data2 = image_data[Dec_min2:Dec_max2,RA_min2:RA_max2] * flux_scaler
 			print(image_data2.shape)
+			if np.any(image_data2 == 0.0):
+				raise ValueError
 			if (image_data2.shape[0] != int(2*subimsize)) or (image_data2.shape[1] != int(2*subimsize)):
 				raise ValueError
 			print(np.sum(image_data2))
@@ -82,7 +86,8 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 			if running_counter % (subplot_x*subplot_y) == 0:
 				#plt.close('all')
 				fig = plt.figure(figsize=(4*subplot_x, 4*subplot_y))
-				gs = gridspec.GridSpec(subplot_x, subplot_y)
+				print(4*subplot_y, 4*subplot_x)
+				gs = gridspec.GridSpec(subplot_y, subplot_x)
 				if colorbar == True:
 					gs.update(wspace=0.11, hspace=0.15)
 				else:
@@ -117,7 +122,7 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 				RA_w, Dec_w = wcs_cont.wcs_pix2world(RA_pix, Dec_pix, 1)
 				wcs2_cont.wcs.crval = [RA_w, Dec_w]
 				wcs2_cont.wcs.crpix = [subimsize_cont, subimsize_cont]
-			ax = fig.add_subplot(gs[x_counter,y_counter],projection=wcs2)
+			ax = fig.add_subplot(gs[y_counter,x_counter],projection=wcs2)
 			### Make name
 			coord = SkyCoord(
 				catalogue[ra_col].iloc[i], catalogue[dec_col].iloc[i], unit=col_unit)
@@ -168,8 +173,8 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 				im = ax.imshow(
 					image_data2,
 					origin='lower',
-					cmap="magma",
-					interpolation="bicubic",
+					cmap=cmap,
+					interpolation="none",
 					norm=matplotlib.colors.SymLogNorm(10**-logthresh))
 				tick = [np.min(image_data2)]
 				if log_contour_scale == 'e':
@@ -208,15 +213,15 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 				tick = tick.astype(int)
 				if colorbar == True:
 					cb = fig.colorbar(mappable=im, ticks=tick, cax=cax, **kw)
-					cb.ax.tick_params(labelsize=10)
+					#cb.ax.tick_params(labelsize=10)
 				#cb = plt.colorbar(
 				#	orientation="horizontal", mappable=im, cax=cax, ticks=tick)
 			else:
 				im = ax.imshow(
 					image_data2,
 					origin='lower',
-					cmap="magma",
-					interpolation="bicubic")
+					cmap=cmap,
+					interpolation="none")
 				tick = [np.min(image_data2)]
 				tick = np.append(tick,
 								 np.around(
@@ -309,20 +314,22 @@ def cutout_sources_general(fitsfile,ra_col,dec_col,col_unit,catalogue,subimsize,
 				ax.add_patch(circ)
 			ax.set_zorder(20)
 			ax.text(
-				0.1,
+				0.5,
 				0.9,
 				r'{\bf %s}' % name,
 				verticalalignment='center',
-				horizontalalignment='left',
-				transform=ax.transAxes,color='w')
-			if z_col !=False:
+				horizontalalignment='center',
+				transform=ax.transAxes,color='w',size=17.5)
+			if plot_pos == True:
+				ax.scatter(coord.ra.deg,coord.dec.deg,transform=ax.get_transform('icrs'),marker='+',c='k',s=20)
+			if plot_col !=False:
 				ax.text(
-					0.1,
-					0.85,
-					r'{\bf $z=%.2f$}' % catalogue[z_col].iloc[i],
+					0.05,
+					0.05,
+					r'{\bf %s $ %s$}' % (plot_col[0],catalogue[plot_col[1]].iloc[i]),
 					verticalalignment='center',
 					horizontalalignment='left',
-					transform=ax.transAxes,color='w')
+					transform=ax.transAxes,color='w',size=12)
 			if ((subplot_x==(x_counter+1)) and (subplot_y==(y_counter+1))) or (i==(len(catalogue[ra_col])-1)):
 				fig.savefig('%s_%d.pdf' % (plot_prefix,page_counter),dpi=100, clobber=True,orientation='landscape',bbox_inches='tight')
 				plt.clf()
